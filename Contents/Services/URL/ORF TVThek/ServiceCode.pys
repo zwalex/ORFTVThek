@@ -1,34 +1,111 @@
-RE_PLAYLIST = Regex("\'playlist\': *\'\[(.*)\]\'")
-# key = HTTPLiveStreamURL(Callback(PlayVideo, url = url))
+RE_DATA = Regex("initializeAdworx\(\[(.*)\]\);")
+
+####################################################################################################
+def GetJSONData(url):
+    content   = HTTP.Request(url).content
+    data      = RE_DATA.search(content).groups()[0]
+    json_data = JSON.ObjectFromString(data)
+    
+    return json_data
 
 ####################################################################################################
 def MetadataObjectForURL(url):
-        return VideoClipObject(
-                title = "The title goes here ...",
-                summary = "Here's where the summary will go ...",
-                # thumb = thumb,
-        )
+    json_data = GetJSONData(url)
+    
+    return VideoClipObject(
+        title = json_data['values']['segment']['title'],
+        summary = json_data['values']['segment']['description'],
+        thumb = json_data['values']['segment']['image_full_url'],
+        duration = int(json_data['values']['segment']['duration']),
+        originally_available_at = Datetime.ParseDate(json_data['values']['segment']['created_date'].split(' ')[0]).date()
+    )
 
 ####################################################################################################
 def MediaObjectsForURL(url):
     return [
-        MediaObject(          
+        MediaObject(
+            container               = Container.MP4,
+            video_codec             = VideoCodec.H264,
+            audio_codec             = AudioCodec.AAC,
+            video_resolution        = 544,
             audio_channels          = 2,
             optimized_for_streaming = True,
             parts                   = [
                 PartObject(
-                    key = HTTPLiveStreamURL(Callback(PlayVideo, url = url))
+                    key = Callback(PlayMP4, url = url)
                 )
             ]
         )
     ]
 
+    # Example for RTMP playback
+#     return [
+#         MediaObject(
+#             video_resolution        = 576,
+#             audio_channels          = 2,
+#             optimized_for_streaming = True,
+#             protocol                = 'rtmp',
+#             parts                   = [
+#                 PartObject(
+#                     key = Callback(PlayRTMP, url = url)
+#                 )
+#             ]
+#         )
+#     ]
+    
+    # Example for HLS playback
+#     return [
+#         MediaObject(
+#             video_resolution        = 576,         
+#             audio_channels          = 2,
+#             optimized_for_streaming = True,
+#             parts                   = [
+#                 PartObject(
+#                     key = HTTPLiveStreamURL(Callback(PlayHLS, url = url))
+#                 )
+#             ]
+#         )
+#     ]
+
 ####################################################################################################
-def PlayVideo(url):
-    content = HTTP.Request(url).content
+@indirect
+def PlayMP4(url):
+    json_data = GetJSONData(url)
     
-    playListString = RE_PLAYLIST.search(content).groups()[0].replace('\\\"', '"')
-    playListString.replace('\\\\"','"')
-    playList = JSON.ObjectFromString(playListString)
-    
-    return Redirect(playList['sources']['4_apple_Q4A']['src'])
+    for source in json_data['values']['segment']['playlist_item_array']['sources']:
+        if source['protocol'] == 'http' and source['src'].lower().endswith("mp4") and source['quality'] == 'Q6A':
+            return IndirectResponse(
+                VideoClipObject,
+                key = source['src']
+            )
+
+    raise Ex.MediaNotAvailable
+
+####################################################################################################
+# @indirect
+# def PlayRTMP(url):
+#     json_data = GetJSONData(url)
+#     
+#     for source in json_data['values']['segment']['playlist_item_array']['sources']:
+#         if source['protocol'] == 'rtmp' and source['quality'] == 'Q6A':
+#             return IndirectResponse(
+#                 VideoClipObject,
+#                 key = RTMPVideoURL(source['src'])
+#             ) 
+#             
+#     raise Ex.MediaNotAvailable
+
+####################################################################################################
+# @indirect
+# def PlayHLS(url):
+#     json_data = GetJSONData(url)
+#     
+#     for source in json_data['values']['segment']['playlist_item_array']['sources']:
+#         if source['protocol'] == 'http' and source['delivery'] == 'hls' and source['quality'] == 'Q4A':
+#             return IndirectResponse(
+#                 VideoClipObject,
+#                 key = HTTPLiveStreamURL(source['src'].replace('Q4A', 'Q6A'))
+#             )
+# 
+#     raise Ex.MediaNotAvailable
+

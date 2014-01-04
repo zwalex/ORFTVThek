@@ -14,9 +14,13 @@
 			
 			<key>URLPatterns</key>
 			<array>
-				<string>^http://tvthek.orf.at/(programs|topics|live).*?</string>
+				<string>^http://tvthek.orf.at/(program|topics|live).*?</string>
 			</array>
 		</dict>
 	</dict>
+	<key>PlexFrameworkFlags</key>
+	<array>
+		<string>UseRealRTMP</string>
+	</array>
 </dict>
 </plist>
