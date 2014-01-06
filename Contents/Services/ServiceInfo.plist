@@ -4,7 +4,7 @@
 <dict>
 	<key>URL</key>
 	<dict>
-		<key>ORF TVThek</key>
+		<key>ORF TVThek VOD</key>
 		<dict>
 			<key>TestURLs</key>
 			<array>
@@ -14,7 +14,14 @@
 			
 			<key>URLPatterns</key>
 			<array>
-				<string>^http://tvthek.orf.at/(programs|topics|live).*?</string>
+				<string>^http://tvthek.orf.at.*/(program|topic)/.*?</string>
+			</array>
+		</dict>
+		<key>ORF TVThek Live</key>
+		<dict>
+			<key>URLPatterns</key>
+			<array>
+				<string>^http://tvthek.orf.at.*/live/.*?</string>
 			</array>
 		</dict>
 	</dict>
